@@ -1,0 +1,750 @@
+#+TITLE: Emacs configuration file
+#+AUTHOR: Morgan Gibson
+#+BABEL: :cache yes
+#+PROPERTY: header-args :tangle yes
+* Initial setup
+** Load ~use-package~
+#+begin_src emacs-lisp
+;; This is only needed once, near the top of the file
+(eval-when-compile (require 'use-package))
+#+end_src
+** Machine-specific 
+#+begin_src emacs-lisp
+;; Machine-specific settings
+(defvar machine-font-size "11")
+(defvar machine-getorg-dir "~/getorg")
+(defvar machine-disable-direnv nil)
+
+(when (and (string-equal system-name "CALCITE")
+	   (string-equal system-type "windows-nt"))
+  (setq machine-font-size "11")
+  (add-to-list 'exec-path "c:/tools/msys64/usr/bin")
+  (setenv "PATH" (concat "c:/tools/msys64/usr/bin;" (getenv "PATH")))
+  (setq machine-disable-direnv t)
+  (setq machine-getorg-dir "C:/Users/Morgan Gibson/Dropbox/getorg"))
+
+(when (string-prefix-p "orthoclase" system-name)
+  (setq machine-font-size "13"))
+
+(when (and (or (string-equal system-name "hematite")
+	       (string-equal system-name "nixos"))
+	   (string-equal system-type "gnu/linux"))
+
+  (require 'browse-url)
+  (defun browse-url-firefox-wsl2 (url &optional new-window)
+    "Ask the Firefox WWW browser to load URL.
+  Defaults to the URL around or before point.  Passes the strings
+  in the variable `browse-url-firefox-arguments' to Firefox.
+
+  Interactively, if the variable `browse-url-new-window-flag' is non-nil,
+  loads the document in a new Firefox window.  A non-nil prefix argument
+  reverses the effect of `browse-url-new-window-flag'.
+
+  If `browse-url-firefox-new-window-is-tab' is non-nil, then
+  whenever a document would otherwise be loaded in a new window, it
+  is loaded in a new tab in an existing window instead.
+
+  Non-interactively, this uses the optional second argument NEW-WINDOW
+  instead of `browse-url-new-window-flag'."
+    (interactive (browse-url-interactive-arg "URL: "))
+    (setq url (browse-url-encode-url url))
+    (let* ((process-environment (browse-url-process-environment)))
+      (apply 'start-process-pipe
+	     (concat "firefox-wsl2 " url) nil
+	     browse-url-firefox-program
+	     (append
+	      browse-url-firefox-arguments
+	      (if (browse-url-maybe-new-window new-window)
+		  (if browse-url-firefox-new-window-is-tab
+		      '("-new-tab")
+		    '("-new-window")))
+	      (list url)))))		;
+
+  (defun start-process-pipe (name buffer program &rest program-args)
+    (make-process
+     :name name
+     :buffer buffer
+     :command (append (list program) program-args)
+     :connection-type 'pipe))
+
+  (setq browse-url-firefox-program "/mnt/c/Program Files/Mozilla Firefox/firefox.exe")
+  (setq browse-url-browser-function 'browse-url-firefox-wsl2))
+
+#+end_src
+** GUI config
+#+begin_src emacs-lisp
+;;
+(menu-bar-mode 0)
+(tool-bar-mode 0)
+(scroll-bar-mode -1)
+(set-face-attribute 'default t
+		    :font (concat "Source Code Pro for Powerline-"
+				  machine-font-size))
+(set-face-attribute 'default nil
+		    :font (concat "Source Code Pro for Powerline-"
+				  machine-font-size))
+
+
+#+end_src
+** Backup files config
+#+begin_src emacs-lisp
+;; from https://stackoverflow.com/a/18330742 Andreas Spindler
+(defvar --backup-directory (concat user-emacs-directory "backups"))
+(if (not (file-exists-p --backup-directory))
+    (make-directory --backup-directory t))
+(setq backup-directory-alist `(("." . ,--backup-directory)))
+(setq make-backup-files t               ; backup of a file the first time it is saved.
+      backup-by-copying t               ; don't clobber symlinks
+      version-control t                 ; version numbers for backup files
+      delete-old-versions t             ; delete excess backup files silently
+      kept-old-versions 6               ; oldest versions to keep when a new numbered backup is made (default: 2)
+      kept-new-versions 9               ; newest versions to keep when a new numbered backup is made (default: 2)
+      auto-save-default t               ; auto-save every buffer that visits a file
+      auto-save-timeout 20              ; number of seconds idle time before auto-save (default: 30)
+      auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
+      )
+
+#+end_src
+** xclip
+#+begin_src emacs-lisp
+(use-package xclip
+  :config
+  (xclip-mode 1)
+  :init (setq x-select-enable-clipboard nil)
+  )
+#+end_src
+* Packages
+** Infrastructure
+#+begin_src emacs-lisp
+(use-package delight
+  :demand t)
+
+(use-package evil
+  :init
+  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (setq evil-want-keybinding nil)
+  :config
+  (evil-mode 1)
+  (evil-set-undo-system 'undo-tree)
+  )
+
+(use-package evil-terminal-cursor-changer
+  :config (evil-terminal-cursor-changer-activate))
+
+(use-package which-key
+  :delight
+  :config
+  (progn
+    (setq which-key-idle-delay 0.2                           ;; Reduce the time before which-key pops up
+	  which-key-allow-evil-operators t                   ;; Show evil keybindings
+	  which-key-sort-order 'which-key-key-order-alpha)) ;; Sort things properly alphabetical
+  (which-key-mode 1))
+
+(use-package general
+  :demand t
+  :config
+  (general-evil-setup)
+  (general-def
+    :states '(normal motion insert emacs)
+    :prefix-map 'global-leader-map
+    :prefix "SPC"
+    :non-normal-prefix "M-SPC"
+    "SPC" '(helm-M-x :wk "M-x")
+    "ESC" 'keyboard-quit
+    "o" '(:ignore t :wk "org")
+    "f" '(:ignore t :wk "files")
+    "b" '(:ignore t :wk "buffers")
+    "w" '(:ignore t :wk "windows")
+    "g" '(:ignore t :wk "magit")
+    "p" 'projectile-command-map
+    )
+  (general-nmap
+    "SPC m" (general-simulate-key "," :which-key "major mode"))
+  (general-def
+    :states '(normal motion insert emacs)
+    :prefix-map 'global-leader-buffer-map
+    :prefix "SPC b"
+    :non-normal-prefix "M-SPC b"
+    "d" 'kill-this-buffer
+    "m" 'kill-other-buffers
+    "b" 'helm-mini
+    "n" 'next-buffer
+    "p" 'previous-buffer
+    "R" 'safe-revert-buffer
+    "s" 'switch-to-scratch-buffer
+    )
+  (general-def
+    :states '(normal motion insert emacs)
+    :prefix-map 'global-leader-windows-map
+    :prefix "SPC w"
+    :non-normal-prefix "M-SPC w"
+    ;; These are just copied using 'which-key-dump-bindings on C-w
+    ;; I could try to refer to that map instead but maybe I want to continue omitting the
+    ;; C- versions, and maybe want to make some other changes.
+    "+" 'evil-window-increase-height
+    "-" 'evil-window-decrease-height
+    "<" 'evil-window-decrease-width
+    "=" 'balance-windows
+    ">" 'evil-window-increase-width
+    "C-f" 'ffap-other-window
+    "H" 'evil-window-move-far-left
+    "J" 'evil-window-move-very-bottom
+    "K" 'evil-window-move-very-top
+    "L" 'evil-window-move-far-right
+    "R" 'evil-window-rotate-upwards
+    "W" 'evil-window-prev
+    "_" 'evil-window-set-height
+    "b" 'evil-window-bottom-right
+    "c" 'evil-window-delete
+    "h" 'evil-window-left
+    "j" 'evil-window-down
+    "k" 'evil-window-up
+    "l" 'evil-window-right
+    "n" 'evil-window-new
+    "o" 'delete-other-windows
+    "p" 'evil-window-mru
+    "q" 'evil-quit
+    "r" 'evil-window-rotate-downward..
+    "s" 'evil-window-split
+    "t" 'evil-window-top-left
+    "v" 'evil-window-vsplit
+    "w" 'evil-window-next
+    "|" 'evil-window-set-width
+    )
+  (general-create-definer global-leader-org-def
+    :states '(normal motion insert emacs)
+    :prefix-map 'global-leader-org-map
+    :prefix "SPC o"
+    :non-normal-prefix "M-SPC o"
+    )
+  (general-create-definer global-leader-files-def
+    :states '(normal motion insert emacs)
+    :prefix-map 'global-leader-files-map
+    :prefix "SPC f"
+    :non-normal-prefix "M-SPC f"
+    )
+  (global-leader-files-def
+    "r" 'helm-recentf
+    "a" 'evil-write-all
+    "p" 'ffap
+    )
+  (general-create-definer global-leader-magit-def
+    :states '(normal motion insert emacs)
+    :prefix-map 'global-leader-magit-map
+    :prefix "SPC g"
+    :non-normal-prefix "M-SPC g"
+    )
+  (general-create-definer global-leader-etc-def
+    :states '(normal motion insert emacs)
+    :prefix-map 'global-leader-etc-map
+    :prefix "SPC a"
+    :non-normal-prefix "M-SPC a"
+    )
+  (general-create-definer major-leader-def
+    :states '(normal motion insert emacs)
+    :prefix ","
+    :non-normal-prefix "M-,")
+  (major-leader-def emacs-lisp-mode-map
+    "e" '(:ignore t :wk "eval")
+    "e b" 'eval-buffer
+    "e s" 'eval-last-sexp
+    "e d" 'eval-defun
+    )
+  (general-define-key
+   :states 'motion
+   "g r" 'goto-random-line
+   )
+  )
+#+end_src
+** Common
+#+begin_src emacs-lisp
+(use-package undo-tree
+  :delight
+  :config
+  (setq undo-tree-auto-save-history nil)
+  :init (global-undo-tree-mode))
+
+(use-package helm
+  :demand t
+  :delight
+  :general
+  (global-leader-files-def
+    "f" 'helm-find-files)
+  :config
+  (add-hook 'after-init-hook (lambda () (helm-mode 1))))
+
+(use-package company
+  :demand t
+  :general
+  ;(:states '(insert emacs) "TAB" 'company-complete-common-or-cycle)
+  (:states '(insert emacs) "TAB" 'company-indent-or-complete-common)
+  :config
+  ;(add-hook 'after-init-hook 'global-company-mode)
+  ;(add-hook 'after-init-hook 'company-tng-mode)
+  )
+#+end_src
+** Org
+#+begin_src emacs-lisp
+(use-package helm-org
+  :demand t
+  :delight
+  :general
+  (global-leader-org-def
+    "c" 'org-capture
+    "o" 'helm-org-agenda-files-headings
+    ))
+
+(use-package org
+  :hook (org-mode . auto-fill-mode)
+  :hook (org-agenda-mode . hl-line-mode)
+  :general
+  (:states 'normal
+	   :keymaps 'org-mode-map
+	   "RET" 'org-open-at-point
+	   "TAB" 'org-cycle
+	   )
+  (global-leader-org-def
+    "p" (lambda () (interactive) (findProject2 (concat org-directory "/projectile.org")))
+    "c" 'org-capture
+    "l" 'org-store-link
+    "a" 'org-agenda)
+  (major-leader-def 'org-mode-map
+    "s" 'org-schedule
+    "S" (lambda () (interactive) (org-schedule '(4)))
+    "d" 'org-deadline
+    "!" 'org-time-stamp-inactive
+    "." 'org-time-stamp
+    "/" 'org-sparse-tree
+    ":" 'org-set-tags-command
+    "n" 'org-narrow-to-subtree
+    "N" 'widen
+    "r" 'org-refile
+    "A" 'org-archive-subtree
+    "c" 'org-ctrl-c-ctrl-c
+    "l" 'org-insert-link
+    "b" '(:ignore t :wk "babel")
+    "b i" 'org-insert-structure-template
+    "b n" 'org-edit-special
+    "b e" 'org-babel-execute-src-block
+    "b b" '(:ignore t :wk "buffer")
+    "b b e" 'org-babel-execute-buffer
+    "b b t" 'org-babel-tangle
+    )
+  (major-leader-def 'org-agenda-mode-map
+    "s" 'org-agenda-schedule
+    "S" (lambda () (interactive) (org-agenda-schedule '(4)))
+    "d" 'org-agenda-deadline
+    ":" 'org-agenda-set-tags
+    "R" 'org-agenda-refile
+    "A" 'org-agenda-archive)
+  :config
+  (setq org-todo-keywords '(
+			    (sequence "STUFF(f)" "|" "NOTE(n)" "OUTCOME(o)" "MOTIVE(M)")
+			    (sequence "TODO(t!)" "NEXT(x!)" "BLOCKED(b!)" "STARTED(s!)" "WAITING(w!)" "|" "DONE(d!)")
+			    (sequence "PROJPLAN(P)" "PROJECT(p)" "PROJWAIT(W)" "|" "PROJDONE(D!)")
+			    (sequence "RECUR(r)" "MAYBE(m!)" "|" "CANCELLED(c!)")
+			    ))
+  (setq org-directory machine-getorg-dir)
+  (setq org-agenda-files
+	(mapcar (lambda (x) (concat org-directory x))
+		'("/todo.org" "/projectile.org" "/revisit.org" "/reference.org" "/chores.org" "/beorg-inbox.org")))
+
+  (setq org-agenda-timegrid-use-ampm 1)
+
+  (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+  (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+  (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+  (setq org-adapt-indentation nil)
+  (setq org-log-done 'time)
+  (setq org-capture-templates
+	'(("c" "Inbox" entry
+	   (file+headline (lambda ()
+			    (concat org-directory "/todo.org")) "Inbox")
+	   "** STUFF %?\n%U\n%i\n%a")
+	  ("p" "Projectile" entry
+	   (function (lambda ()
+		       (findProject (concat org-directory "/projectile.org")))
+		     )
+	   "** STUFF %?\n%U\n%i\n%a")))
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((shell . t)
+     (emacs-lisp . t)
+     (latex . t)
+     ))
+  (setq org-edit-src-content-indentation 0)
+  )
+
+;; copied from org-capture.el
+(defun findProject (path)
+  (let ((last-project (projectile-project-name)))
+    (set-buffer (org-capture-target-buffer path))
+    ;; Org expects the target file to be in Org mode, otherwise
+    ;; it throws an error.  However, the default notes files
+    ;; should work out of the box.  In this case, we switch it to
+    ;; Org mode.
+    (unless (derived-mode-p 'org-mode)
+      (org-display-warning
+       (format "Capture requirement: switching buffer %S to Org mode"
+	       (current-buffer)))
+      (org-mode))
+    (org-capture-put-target-region-and-position)
+    (widen)
+    (goto-char (point-min))
+    (if (re-search-forward (format org-complex-heading-regexp-format
+				   (regexp-quote last-project))
+			   nil t)
+	(beginning-of-line)
+      (goto-char (point-max))
+      (unless (bolp) (insert "\n"))
+      (insert "** " last-project "\n")
+      (beginning-of-line 0))))
+
+(defun findProject2 (path)
+  (let ((last-project (projectile-project-name)))
+    ;;(set-buffer (org-capture-target-buffer (concat org-directory "/projectile.org")))
+    (switch-to-buffer-other-window (find-file-noselect path))
+    ;; Org expects the target file to be in Org mode, otherwise
+    ;; it throws an error.  However, the default notes files
+    ;; should work out of the box.  In this case, we switch it to
+    ;; Org mode.
+					;(org-capture-put-target-region-and-position)
+    (unless (derived-mode-p 'org-mode)
+      (org-display-warning
+       (format "Capture requirement: switching buffer %S to Org mode"
+	       (current-buffer)))
+      (org-mode))
+    (widen)
+    (goto-char (point-min))
+    (if (re-search-forward (format org-complex-heading-regexp-format
+				   (regexp-quote last-project))
+			   nil t)
+	(beginning-of-line)
+      (goto-char (point-max))
+      (unless (bolp) (insert "\n"))
+      (insert "** " last-project "\n")
+      (beginning-of-line 0)
+      )
+
+    (org-narrow-to-subtree)
+    (hide-leaves)
+    (org-show-children)
+    ))
+
+(use-package evil-org
+  :delight
+  :after (org evil)
+  :config
+  (add-hook 'org-mode-hook 'evil-org-mode)
+  (add-hook 'evil-org-mode-hook
+	    (lambda () (evil-org-set-key-theme '(textobjects navigation todo))))
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys)
+  (evil-define-key 'motion org-agenda-mode-map
+    (kbd "SPC") nil
+    (kbd "TAB") 'org-agenda-show-and-scroll-up
+    (kbd "RET") 'org-agenda-switch-to
+    "o" 'org-agenda-goto
+    "!" 'org-agenda-toggle-deadlines
+    ))
+
+(use-package ob-async)
+
+(use-package eval-in-repl)
+
+(use-package org-babel-eval-in-repl
+  :general (major-leader-def 'org-mode-map
+	     "b E" 'ober-eval-block-in-repl
+	     "C-RET" 'ober-eval-in-repl)
+  :config
+  (with-eval-after-load "eval-in-repl"
+    (setq eir-jump-after-eval nil))
+  (add-to-list 'ober-org-babel-type-list
+	       '("shell" . (eval-in-repl-shell eir-eval-in-shell)))
+  )
+
+(use-package ox-hugo
+  :after ox)
+
+(use-package ob-tmux
+  :custom
+  (org-babel-default-header-args:tmux
+   '((:results . "silent");
+     (:session . "default"); The default tmux session to send code to
+     (:socket  . nil))); The default tmux socket to communicate with
+  ;; The tmux sessions are prefixed with the following string.
+  ;; You can customize this if you like.
+  (org-babel-tmux-session-prefix "ob-")
+  ;; The terminal that will be used.
+  ;; You can also customize the options passed to the terminal.
+  ;; The default terminal is "gnome-terminal" with options "--".
+  (org-babel-tmux-terminal "true")
+					;(org-babel-tmux-terminal-opts '("-T" "ob-tmux" "-e"))
+  ;; Finally, if your tmux is not in your $PATH for whatever reason, you
+  ;; may set the path to the tmux binary as follows:
+					;(org-babel-tmux-location "/usr/bin/tmux")
+  )
+
+(use-package emamux)
+#+end_src
+** Common 2
+#+begin_src emacs-lisp
+(use-package projectile
+  :demand t
+  :config
+  (setq projectile-completion-system 'helm)
+  (projectile-mode +1))
+
+(use-package magit
+  :general
+  (global-leader-magit-def
+    "g" 'magit-status
+    "h" 'magit-dispatch))
+
+(use-package forge
+  :after magit)
+
+					; TODO implement this where needed
+(defun clear-space (keymap)
+  (let ((space-command (lookup-key keymap (kbd "SPC"))))
+    (define-key keymap (kbd "SPC") nil)
+    (evil-define-key 'emacs keymap (kbd "SPC") space-command)))
+
+(clear-space grep-mode-map)
+
+					;(setq indent-tabs-mode nil)
+					;(setq tab-width 2)
+
+(use-package evil-collection
+  :after (evil company-tng flycheck neotree magit)
+  :config
+  (setq evil-collection-magit-state 'normal)
+  (define-key magit-status-mode-map
+	      (kbd "SPC") nil) ; magit-diff-show-or-scroll-up
+  (evil-define-key 'normal magit-status-mode-map
+    (kbd ".") 'magit-diff-show-or-scroll-up)
+  (evil-define-key 'emacs magit-status-mode-map
+    (kbd "SPC") 'magit-diff-show-or-scroll-up)
+  (define-key magit-revision-mode-map
+	      (kbd "SPC") nil) ; scroll-up
+  (define-key magit-diff-mode-map
+	      (kbd "SPC") nil) ; scroll-up
+  )
+
+(evil-collection-init '(magit which-key helm company flycheck neotree))
+
+(use-package direnv
+  :init
+  (add-hook 'prog-mode-hook #'direnv-update-environment)
+  :config
+  (unless machine-disable-direnv (direnv-mode)))
+
+(use-package neotree
+  :general
+  (global-leader-files-def
+    "n" 'neotree-toggle)
+  )
+#+end_src
+** Major modes
+*** Nix
+#+begin_src emacs-lisp
+(use-package nix-mode
+  :mode "\\.nix\\'")
+#+end_src
+*** Ledger
+#+begin_src emacs-lisp
+(use-package ledger-mode
+  :init
+  ;; Ledger config from hledger github issue user taksuyu
+  (setq ledger-binary-path "hledger")
+  (setq ledger-mode-should-check-version nil)
+  (setq ledger-mode-links-in-register nil)
+  (add-to-list 'auto-mode-alist '("\\.\\(h?ledger\\|journal\\|j\\)$" . ledger-mode))
+
+  (defvar ledger-report-balance
+    (list "bal" (concat ledger-binary-path " -f default.journal bal assets:cash liabilities:discover -U")))
+
+  (setq ledger-reports
+	(list ledger-report-balance)))
+#+end_src
+*** DTrace
+#+begin_src emacs-lisp
+(use-package dtrace-script-mode
+  :mode "\\.d\\'")
+
+#+end_src
+*** Dhall
+#+begin_src emacs-lisp
+(use-package dhall-mode
+  :general
+  (major-leader-def 'dhall-mode-map
+    "l" '(:keymap lsp-command-map :package lsp-mode :wk "lsp-mode")
+					; Copied and filtered from lsp-mode.el
+    "l a" '(:ignore t :wk "already there")
+    "l s" '(:ignore t :wk "sessions")
+    "l F" '(:ignore t :wk "folders")
+    "l =" '(:ignore t :wk "formatting")
+    "l T" '(:ignore t :wk "toggle")
+    "l g" '(:ignore t :wk "goto")
+    "l h" '(:ignore t :wk "help")
+    "l r" '(:ignore t :wk "refactor")
+    "l a" '(:ignore t :wk "code actions")
+    "l G" '(:ignore t :wk "peek")
+    "n" 'flycheck-next-error
+    "N" 'flycheck-previous-error
+    "f" 'flycheck-list-errors
+    )
+  :mode "\\.dhall\\'"
+  :config
+  (setq dhall-use-header-line nil)
+  (setq dhall-repl-executable "dhall repl")
+  )
+#+end_src
+*** Haskell
+#+begin_src emacs-lisp
+(add-hook 'emacs-lisp-mode-hook 'hs-minor-mode)
+
+					;(use-package flycheck
+					;  :general
+					;  (major-leader-def 'flycheck-mode-map
+					;    "n" 'flycheck-next-error
+					;    "N" 'flycheck-previous-error
+					;    "l" 'flycheck-list-errors
+					;    )
+					;  ;;:config
+					;  ;;(setq flycheck-check-syntax-automatically '(save mode-enabled))
+					;  )
+					;
+					;(use-package dante
+					;  :after haskell-mode
+					;  :commands 'dante-mode
+					;  :init
+					;  (add-hook 'haskell-mode-hook 'flycheck-mode)
+					;  (add-hook 'haskell-mode-hook 'dante-mode)
+					;  :general
+					;  (major-leader-def 'dante-mode-map
+					;    "t" 'dante-type-at
+					;    "i" 'dante-info
+					;    "a" 'attrap-attrap
+					;    "e" 'dante-eval-block
+					;    "d" 'xref-find-definitions
+					;    "D" 'xref-find-definitions-other-window
+					;    "r" 'xref-find-references
+					;    )
+					;  )
+
+(use-package haskell-mode
+  :general
+  (major-leader-def 'haskell-mode-map
+    "l" '(:keymap lsp-command-map :package lsp-mode :wk "lsp-mode")
+					; Copied and filtered from lsp-mode.el
+    "l a" '(:ignore t :wk "already there")
+    "l s" '(:ignore t :wk "sessions")
+    "l F" '(:ignore t :wk "folders")
+    "l =" '(:ignore t :wk "formatting")
+    "l T" '(:ignore t :wk "toggle")
+    "l g" '(:ignore t :wk "goto")
+    "l h" '(:ignore t :wk "help")
+    "l r" '(:ignore t :wk "refactor")
+    "l a" '(:ignore t :wk "code actions")
+    "l G" '(:ignore t :wk "peek")
+    "n" 'flycheck-next-error
+    "N" 'flycheck-previous-error
+    "f f" 'flycheck-list-errors
+    "f c" 'flycheck-buffer
+    "f d" 'flycheck-clear
+    )
+  )
+
+(use-package flycheck
+  :config
+  (global-flycheck-mode t)
+  (flycheck-idle-change-delay 1.2)
+)
+
+(use-package yasnippet)
+
+(use-package lsp-mode
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  ; https://emacs-lsp.github.io/lsp-mode/page/performance/
+  (setq read-process-output-max (* 5 1024 1024)) ;; 5mb
+  (setq gc-cons-threshold 100000000)
+
+  :hook
+  (haskell-mode . lsp)
+  (dhall-mode . lsp)
+  (sh-mode . lsp)
+  :commands lsp
+  )
+
+(use-package lsp-ui
+  :commands lsp-ui-mode)
+
+(use-package helm-lsp
+  :commands helm-lsp-workspace-symbol)
+
+(use-package lsp-haskell
+  :config
+  ;(setq lsp-haskell-process-path-hie "ghcide")
+  ;(setq lsp-haskell-process-args-hie '())
+  (setq lsp-haskell-server-path
+	"haskell-language-server")
+  ;; Comment/uncomment this line to see interactions between lsp client/server.
+  ;;(setq lsp-log-io t)
+  )
+
+(use-package format-all
+  :hook (haskell-mode . format-all-mode)
+  :general
+  (global-leader-etc-def
+    "f" 'format-all-buffer
+    )
+  )
+
+(defun haskell-outline-level ()
+  (let (buffer-invisibility-spec)
+    (save-excursion
+      (skip-chars-forward "    \n")
+      (current-column))))
+
+(add-hook 'haskell-mode-hook (lambda ()
+			       (outline-minor-mode)
+			       (set (make-local-variable 'outline-regexp)
+				    (rx (* anything) (or "do" "mdo" "where")
+					symbol-end))
+			       (set (make-local-variable 'outline-level) #'haskell-outline-level)
+			       ))
+#+end_src
+*** AUCTeX 
+#+begin_src emacs-lisp
+(use-package tex
+  :ensure auctex
+  :config (setq-default TeX-engine 'xetex)
+  )
+
+#+end_src
+*** PowerShell
+#+begin_src emacs-lisp
+(use-package powershell)
+#+end_src
+** Appearance
+#+begin_src emacs-lisp
+(use-package color-theme-sanityinc-solarized
+  :config (load-theme 'sanityinc-solarized-dark t))
+#+end_src
+* Misc
+#+begin_src emacs-lisp
+;;; Jump to a random line
+					; sburke@cpan.org
+(defun goto-random-line ()
+  "Go to a random line in this buffer."
+					; good for electrobibliomancy.
+  (interactive)
+  (goto-line (1+ (random (buffer-line-count)))))
+
+(defun buffer-line-count ()
+  "Return the number of lines in this buffer."
+  (count-lines (point-min) (point-max)))
+
+#+end_src
