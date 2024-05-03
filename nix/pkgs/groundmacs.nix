@@ -45,6 +45,7 @@ let
       epkgs.elpaPackages.auctex
       evil-terminal-cursor-changer
       powershell
+      rust-mode
     ];
 
 in { emacs29XWithPackages, ... }:
