@@ -47,6 +47,7 @@ let
       powershell
       json-mode
       ox-pandoc
+      rust-mode
     ];
 
 in { emacs29XWithPackages, ... }:
