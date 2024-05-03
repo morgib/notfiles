@@ -123,6 +123,7 @@
   :init
   (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
   (setq evil-want-keybinding nil)
+  (setq evil-shift-width 2)
   :config
   (evil-mode 1)
   (evil-set-undo-system 'undo-tree)
@@ -487,6 +488,11 @@
 
 (use-package emamux)
 #+end_src
+*** Exporters
+#+begin_src emacs-lisp
+(use-package ox-pandoc
+  :after ox)
+#+end_src
 ** Common 2
 #+begin_src emacs-lisp
 (use-package projectile
@@ -728,12 +734,17 @@
 #+begin_src emacs-lisp
 (use-package powershell)
 #+end_src
+*** json
+#+begin_src emacs-lisp
+(use-package json-mode)
+#+end_src
 ** Appearance
 #+begin_src emacs-lisp
 (use-package color-theme-sanityinc-solarized
   :config (load-theme 'sanityinc-solarized-dark t))
 #+end_src
 * Misc
+** Random line
 #+begin_src emacs-lisp
 ;;; Jump to a random line
 					; sburke@cpan.org
@@ -747,4 +758,8 @@
   "Return the number of lines in this buffer."
   (count-lines (point-min) (point-max)))
 
+#+end_src
+** Indent defaults
+#+begin_src emacs-lisp
+(setq-default indent-tabs-mode nil)
 #+end_src

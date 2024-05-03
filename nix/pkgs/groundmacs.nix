@@ -45,6 +45,8 @@ let
       epkgs.elpaPackages.auctex
       evil-terminal-cursor-changer
       powershell
+      json-mode
+      ox-pandoc
     ];
 
 in { emacs29XWithPackages, ... }:

@@ -28,6 +28,7 @@
     shfmt
     bashInteractive
     nixpkgs-fmt
+    pandoc
   ];
 
   programs.home-manager.enable = true;
