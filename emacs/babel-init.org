@@ -347,8 +347,8 @@
 			    ))
   (setq org-directory machine-getorg-dir)
   (setq org-agenda-files
-	(mapcar (lambda (x) (concat org-directory x))
-		'("/todo.org" "/projectile.org" "/revisit.org" "/reference.org" "/chores.org" "/beorg-inbox.org")))
+	(directory-files org-directory t
+			 "\\(todo\\|projectile\\|revisit\\|reference\\|chores\\|beorg-inbox\\)\\.org$"))
 
   (setq org-agenda-timegrid-use-ampm 1)
 
