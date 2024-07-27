@@ -1,2 +1,2 @@
-# notfiles
+* notfiles
 Not exactly dotfiles.

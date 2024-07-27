@@ -27,6 +27,7 @@
         f (import nixpkgs {
           inherit system;
           overlays = [ self.overlays.groundmacs dhall-vmadm.overlay ];
+          config.allowUnfreePredicate = _: true;
         });
       eachPkgs = systems: f: flake-utils.lib.eachSystem systems (pkgsSystem f);
 
