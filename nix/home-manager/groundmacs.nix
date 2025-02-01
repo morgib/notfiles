@@ -14,7 +14,7 @@
     gnugrep
     cachix
     tree
-    nixfmt
+    nixfmt-rfc-style
     jq
     smfgen
     file

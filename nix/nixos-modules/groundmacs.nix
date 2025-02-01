@@ -1,7 +1,6 @@
 { pkgs, ...}:
 
 {
-environment.noXlibs = false;
 environment.systemPackages = with pkgs; [ groundmacs ];
 programs.tmux.enable = true;
 programs.tmux.extraConfig = ''

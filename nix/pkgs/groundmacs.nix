@@ -2,7 +2,6 @@ let
 
   selectPackages = epkgs:
     with epkgs.melpaPackages; [
-      use-package
       evil
       color-theme-sanityinc-solarized
       company
