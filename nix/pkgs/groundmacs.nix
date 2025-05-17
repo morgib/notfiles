@@ -49,6 +49,6 @@ let
       rust-mode
     ];
 
-in { emacs29XWithPackages, ... }:
+in { emacs30XWithPackages, ... }:
 
-emacs29XWithPackages selectPackages
+emacs30XWithPackages selectPackages

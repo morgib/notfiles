@@ -5,10 +5,10 @@ let
     f (builtins.intersectAttrs (builtins.functionArgs f) world);
   callPathWith = world: path: callWith world (import path);
 in {
-  emacs29X = super.emacs29.override { withGTK3 = false; };
-  emacs29XPackages =
-    super.dontRecurseIntoAttrs (super.emacsPackagesFor self.emacs29X);
-  emacs29XWithPackages = self.emacs29XPackages.emacsWithPackages;
+  emacs30X = super.emacs30.override { withGTK3 = false; };
+  emacs30XPackages =
+    super.dontRecurseIntoAttrs (super.emacsPackagesFor self.emacs30X);
+  emacs30XWithPackages = self.emacs30XPackages.emacsWithPackages;
 
   groundmacs = callPathWith self ../pkgs/groundmacs.nix;
 

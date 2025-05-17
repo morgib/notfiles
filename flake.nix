@@ -76,12 +76,11 @@
         nixosConfigurations.wsl = nixpkgs.lib.nixosSystem {
           modules = [
             nixos-wsl.nixosModules.wsl
-            home-manager.nixosModule
+            home-manager.nixosModules.default
             self.nixosModules.base
             self.nixosModules.groundmacs
             {
               wsl.enable = true;
-              wsl.nativeSystemd = true;
               wsl.defaultUser = "nixos";
               users.users.nixos = {
                 isNormalUser = true;
