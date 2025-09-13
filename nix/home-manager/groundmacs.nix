@@ -93,15 +93,6 @@
     target = ".emacs.d/init.el";
   };
 
-  home.file.emacs-babel-init = {
-    source = ../../emacs/babel-init.org;
-    target = ".emacs.d/babel-init.org";
-    onChange = ''
-        f=".emacs.d/babel-init.el"
-        [ -f "$f" ] && rm "$f"
-    '';
-  };
-
   programs.git = {
     enable = true;
     userEmail = "git@morgib.com";

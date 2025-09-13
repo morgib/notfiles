@@ -1,4 +1,2 @@
 (require 'org)
-(org-babel-load-file
- (expand-file-name "babel-init.org"
-                   user-emacs-directory))
+(org-babel-load-file "~/notfiles/emacs/babel-init.org")
