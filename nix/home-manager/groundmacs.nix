@@ -12,7 +12,7 @@
     })
     coreutils
     gnugrep
-    cachix
+    #cachix
     tree
     nixfmt-rfc-style
     jq
@@ -76,6 +76,7 @@
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
+    package = pkgs.direnv.overrideAttrs(old: { doCheck = false; });
   };
   
   programs.emacs = {
@@ -95,8 +96,10 @@
 
   programs.git = {
     enable = true;
-    userEmail = "git@morgib.com";
-    userName = "Morgan Gibson";
+    settings.user = {
+      email = "git@morgib.com";
+      name = "Morgan Gibson";
+    };
   };
   
   programs.tmux = {
