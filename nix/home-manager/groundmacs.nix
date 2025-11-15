@@ -29,6 +29,8 @@
     bashInteractive
     nixpkgs-fmt
     pandoc
+    powershell
+    powershell-editor-services
   ];
 
   programs.home-manager.enable = true;
