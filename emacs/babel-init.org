@@ -630,6 +630,12 @@
     "f f" 'flycheck-list-errors
     "f c" 'flycheck-buffer
     "f d" 'flycheck-clear
+    "r b" 'haskell-interactive-switch
+    "r l" 'haskell-process-load-or-reload
+    "r r" 'haskell-interactive-bring
+    "r c" 'haskell-process-cabal-build
+    "r k" 'haskell-interactive-mode-clear
+    "r C" 'haskell-process-cabal
     )
   )
 
