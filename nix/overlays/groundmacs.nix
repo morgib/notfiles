@@ -7,7 +7,7 @@ let
 in {
   emacs30X = super.emacs30.override { withGTK3 = false; };
   emacs30XPackages =
-    super.dontRecurseIntoAttrs (super.emacsPackagesFor self.emacs30X);
+    super.lib.dontRecurseIntoAttrs (super.emacsPackagesFor self.emacs30X);
   emacs30XWithPackages = self.emacs30XPackages.emacsWithPackages;
 
   groundmacs = callPathWith self ../pkgs/groundmacs.nix;
