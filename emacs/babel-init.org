@@ -685,6 +685,7 @@
   (dhall-mode . lsp)
   (sh-mode . lsp)
   (rust-mode . lsp)
+  (powershell-mode . lsp)
   :commands lsp
   )
 
@@ -713,7 +714,17 @@
 #+end_src
 *** PowerShell
 #+begin_src emacs-lisp
-(use-package powershell)
+(use-package powershell
+  :general
+  (major-leader-def powershell-mode-map
+    "l" '(:keymap lsp-command-map :package lsp-mode :wk "lsp-mode")
+    "n" 'flycheck-next-error
+    "N" 'flycheck-previous-error
+    "f f" 'flycheck-list-errors
+    "f c" 'flycheck-buffer
+    "f d" 'flycheck-clear
+   )
+)
 #+end_src
 *** json
 #+begin_src emacs-lisp
