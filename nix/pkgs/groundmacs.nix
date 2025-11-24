@@ -47,6 +47,7 @@ let
       json-mode
       ox-pandoc
       rust-mode
+      origami
     ];
 
 in { emacs30XWithPackages, ... }:

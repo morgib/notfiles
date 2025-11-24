@@ -551,6 +551,14 @@
     "n" 'neotree-toggle)
   )
 #+end_src
+** Minor modes
+*** Origami
+#+begin_src emacs-lisp
+(use-package origami
+  :hook
+  (powershell-mode . origami-mode)
+)
+#+end_src
 ** Major modes
 *** Nix
 #+begin_src emacs-lisp
